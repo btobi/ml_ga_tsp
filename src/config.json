@@ -1,0 +1,9 @@
+{
+  "canvas": {
+    "height": 800,
+    "width": 1000
+  },
+  "cities": 100,
+  "populationSize": 500,
+  "stopCriterion": 50
+}
