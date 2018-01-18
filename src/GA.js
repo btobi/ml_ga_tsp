@@ -4,16 +4,18 @@ import DataGenerator from "./DataGenerator";
 import Util from "./Util";
 import cities from "./cities60"
 import citiesRandom from "./citiesrandom"
+import SA from "./SA";
+import Timer from "./Timer";
 
-export default class Alg {
+export default class GA {
 
-    init() {
-        console.log(config);
-        const numberCities = 500;
-        this.cities = DataGenerator.getRandomCities(numberCities, config.canvas.width, config.canvas.height);
-        // this.cities = citiesRandom;
-        this.initialOrder = DataGenerator.getOrder(numberCities);
-        this.population = DataGenerator.getRandomPopulation(config.populationSize, this.initialOrder);
+    constructor(cities, initialOrder, canvas, population, infuseSA) {
+
+        this.cities = cities;
+        this.initialOrder = initialOrder;
+        this.canvas = canvas;
+        this.population = population;
+        this.infuseSA = infuseSA;
 
         this.bestSolution = [];
         this.bestDistance = Infinity;
@@ -21,27 +23,28 @@ export default class Alg {
 
         this.fitness = [];
 
-        this.stopCriterion = 5;
+        this.stopCriterion = 1;
         this.mutationRate = 0.05;
-        this.maxIterationsNoImprovement = 400;
+        this.maxIterationsNoImprovement = 1000;
 
         this.maxIterator = 600;
         this.currentIterator = 0;
         this.noImprovementSince = 0;
 
-        console.log(numberCities);
+        this.infuseSAWhenNoImprovementSince = this.maxIterationsNoImprovement * 0.8;
 
-        console.log(JSON.stringify(this.cities));
-
-
-        this.canvas = new Canvas(this.cities);
-
-        this.performAlg();
+        this.timer = new Timer();
     }
 
-    performAlg() {
-        console.log("start", this.prevBestDistance === Infinity);
-        document.body.onclick = this.performStep.bind(this);
+    getSolution() {
+        return this.bestSolution;
+    }
+
+    run() {
+        // console.log("start", this.prevBestDistance === Infinity);
+        // document.body.onclick = this.performStep.bind(this);
+        this.timer.start();
+        this.performStep();
     }
 
     algShouldStop() {
@@ -58,6 +61,8 @@ export default class Alg {
         const hasInitValues = this.prevBestDistance === Infinity || this.bestDistance === Infinity;
         const changeIsSmall = this.prevBestDistance - this.bestDistance < this.stopCriterion;
 
+        this.prevBestDistance = this.bestDistance;
+
         if (changeIsSmall)
             this.noImprovementSince++;
         else
@@ -65,10 +70,14 @@ export default class Alg {
 
         const tooManyIterations = this.noImprovementSince > this.maxIterationsNoImprovement;
 
+        if (this.noImprovementSince > this.infuseSAWhenNoImprovementSince && this.infuseSA) {
+            this.performSaOnPopulation();
+            this.noImprovementSince = 0;
+        }
+
         if (tooManyIterations)
             console.log("too many iterations");
 
-        this.prevBestDistance = this.bestDistance;
 
         // console.log(this.prevBestDistance, this.bestDistance, this.prevBestDistance - this.bestDistance);
         return !hasInitValues && tooManyIterations;
@@ -79,15 +88,18 @@ export default class Alg {
         if (this.algShouldStop()) {
             console.log("alg stopped");
             document.body.style.backgroundColor = "#b1f9b1";
+            this.timer.stop();
+            this.timer.log();
             return;
         }
-
-        console.log("next gen");
 
         this.calculateFitness();
         this.normalizeFitness();
         this.nextGeneration();
 
+        // if (this.infuseSA) {
+        //     GA.performSaOnPopulation(this.cities, this.population);
+        // }
 
         setTimeout(() => {this.performStep()}, 1);
     }
@@ -125,12 +137,14 @@ export default class Alg {
     }
 
     nextGeneration() {
+        console.log("Next generation");
+
         let newPopulation = [];
         for (let i = 0; i < this.population.length; i++) {
-            let orderA = Alg.pickOne(this.population, this.fitness);
-            let orderB = Alg.pickOne(this.population, this.fitness);
-            let order = Alg.crossOver(orderA, orderB);
-            Alg.mutate(order, this.mutationRate);
+            let orderA = GA.pickOne(this.population, this.fitness);
+            let orderB = GA.pickOne(this.population, this.fitness);
+            let order = GA.crossOver(orderA, orderB);
+            GA.mutate(order, this.mutationRate);
             newPopulation[i] = order;
         }
         this.population = newPopulation;
@@ -172,6 +186,18 @@ export default class Alg {
                 Util.swap(order, indexA, indexB);
             }
         }
+    }
+
+    performSaOnPopulation() {
+
+        console.log("Perform SA...");
+
+        for (let i = 0; i < this.population.length; i++) {
+            const sa = new SA(this.cities, this.population[i].slice(0), this.canvas, 50, 0.001);
+            sa.run();
+            this.population[i] = sa.getSolution().slice(0);
+        }
+
     }
 
 }

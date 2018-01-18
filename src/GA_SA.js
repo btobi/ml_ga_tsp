@@ -1,12 +1,13 @@
-import Alg from "./Alg";
+import GA from "./GA";
 
 export default class GASA {
 
-    init() {
-
-        this.ga = new Alg();
+    constructor(cities, initialOrder, canvas) {
 
 
+    }
+
+    run() {
 
     }
 

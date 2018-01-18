@@ -3,62 +3,96 @@ import Canvas from "./Canvas";
 import Util from "./Util";
 import config from "./config"
 import cities from "./cities500"
+import Timer from "./Timer";
 
 export default class SA {
 
-    init() {
+    constructor(cities, initialOrder, canvas, initialTemp, coolRate) {
 
-        const numberCities = 500;
-
-        // this.cities = DataGenerator.getRandomCities(numberCities, config.canvas.width, config.canvas.height);
         this.cities = cities;
-        this.initialOrder = DataGenerator.getOrder(this.cities.length);
+        this.initialOrder = initialOrder;
+        this.canvas = canvas;
 
-        this.bestSolution = [];
+        this.bestSolution = this.initialOrder;
         this.bestDistance = Infinity;
         this.prevBestDistance = Infinity;
 
-        this.currentSolution = DataGenerator.shuffle(this.initialOrder.slice(0));
+        this.currentSolution = this.initialOrder;
 
         this.currentIterator = 0;
         this.noImprovementSince = 0;
         this.maxIterationsNoImprovement = 400;
         this.stopCriterion = 5;
 
-        this.canvas = new Canvas(this.cities);
-
-        this.coolRate = 0.00001;
-        this.initialTemp = this.cities.length * 3.5;
+        this.coolRate = coolRate || 0.0001;
+        this.initialTemp = initialTemp || this.cities.length * 3.5;
         this.currentTemp = this.initialTemp;
-
-        console.log(JSON.stringify(this.cities));
 
         this.graphicalUpdateStep = Math.round(this.initialTemp / 2);
 
-        this.performStep();
+        this.timer = new Timer();
+
+        document.body.onclick = () => {
+            console.log("clicked");
+            this.currentSolution = this.bestSolution.slice(0);
+            this.currentIterator = 0;
+            this.initialTemp *= 0.5;
+            this.coolRate *= 0.5;
+            this.currentTemp = this.initialTemp;
+            this.run();
+        }
+    }
+
+    run() {
+        this.timer.start();
+        if (this.canvas)
+            this.runGraphical();
+        else
+            this.runWhile();
 
     }
 
-    performStep() {
-
-        if (this.algShouldStop()) {
-            console.log("alg stopped");
-            document.body.style.backgroundColor = "#b1f9b1";
-            return;
+    runWhile() {
+        console.log("run in loop");
+        while (!this.algShouldStop()) {
+            this.performStep();
         }
+        console.log("alg stopped");
+        document.body.style.backgroundColor = "#b1f9b1";
+        this.timer.stop();
+        this.timer.log();
+    }
+
+    runGraphical() {
+        this.performStep();
+        if (!this.algShouldStop()) {
+            if (this.canvas && this.currentIterator % this.graphicalUpdateStep === 0)
+                setTimeout(() => {this.runGraphical()}, 1);
+            else
+                this.runGraphical();
+        } else {
+            console.log("Alg stopped");
+        }
+    }
+
+    getSolution() {
+        return this.bestSolution;
+    }
+
+    performStep() {
 
         const currentEnergy = Util.calcDistance(this.cities, this.currentSolution);
 
         const randomCityA = DataGenerator.random(0, this.cities.length - 1);
         const randomCityB = DataGenerator.random(0, this.cities.length - 1);
 
-        Util.twoOptSwap(this.currentSolution, randomCityA, randomCityB);
+        Util.swap(this.currentSolution, randomCityA, randomCityB);
 
         const newEnergy = Util.calcDistance(this.cities, this.currentSolution);
 
         // if solution is not accepted, then swap cities back
         if (!this.acceptSolution(currentEnergy, newEnergy, this.currentTemp))
-            Util.twoOptSwap(this.currentSolution, randomCityA, randomCityB);
+            Util.swap(this.currentSolution, randomCityA, randomCityB);
 
         if (newEnergy < this.bestDistance) {
             this.bestSolution = this.currentSolution.slice(0);
@@ -67,13 +101,6 @@ export default class SA {
 
         this.currentTemp *= (1 - this.coolRate);
 
-        if (this.currentIterator % this.graphicalUpdateStep === 0)
-            setTimeout(() => {this.performStep()}, 1);
-        else
-            this.performStep();
-
-        //
-        // this.performStep();
     }
 
     acceptSolution(currentEnergy, newEnergy, currentTemp) {
@@ -90,11 +117,14 @@ export default class SA {
     algShouldStop() {
         this.currentIterator++;
 
-        document.getElementById("generation").innerText = `${this.currentIterator} | ${this.currentTemp}`
-
-        if (this.bestDistance < this.prevBestDistance) {
-            this.canvas.drawCurrentSolution(this.bestSolution);
-            document.getElementById("best").innerText = this.bestDistance;
+        if (this.canvas) {
+            if (this.bestDistance < this.prevBestDistance) {
+                document.getElementById("generation").innerText = `${this.currentIterator} | ${this.currentTemp}`;
+                setTimeout(() => {
+                    this.canvas.drawCurrentSolution(this.bestSolution);
+                }, 1);
+                document.getElementById("best").innerText = this.bestDistance;
+            }
             // console.log("New best solution ", Math.round(this.bestDistance), Math.round(this.prevBestDistance), Math.round(this.prevBestDistance - this.bestDistance));
         }
 
