@@ -9,11 +9,11 @@ export default class Alg {
 
     init() {
         console.log(config);
-        const numberCities = 100;
+        const numberCities = 500;
         this.cities = DataGenerator.getRandomCities(numberCities, config.canvas.width, config.canvas.height);
         // this.cities = citiesRandom;
-        this.order = DataGenerator.getOrder(numberCities);
-        this.population = DataGenerator.getRandomPopulation(config.populationSize, this.order);
+        this.initialOrder = DataGenerator.getOrder(numberCities);
+        this.population = DataGenerator.getRandomPopulation(config.populationSize, this.initialOrder);
 
         this.bestSolution = [];
         this.bestDistance = Infinity;
@@ -28,6 +28,8 @@ export default class Alg {
         this.maxIterator = 600;
         this.currentIterator = 0;
         this.noImprovementSince = 0;
+
+        console.log(numberCities);
 
         console.log(JSON.stringify(this.cities));
 
@@ -167,15 +169,9 @@ export default class Alg {
             if (Math.random() < mutationRate) {
                 const indexA = DataGenerator.random(0, order.length - 1);
                 const indexB = (indexA + 1) % (order.length - 1);
-                Alg.swap(order, indexA, indexB);
+                Util.swap(order, indexA, indexB);
             }
         }
-    }
-
-    static swap(a, i, j) {
-        let temp = a[i];
-        a[i] = a[j];
-        a[j] = temp;
     }
 
 }

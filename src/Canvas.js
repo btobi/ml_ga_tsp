@@ -44,7 +44,8 @@ export default class Canvas {
             const to = this.points[order[i+1]];
 
             const path = new paper.Path.Line(from, to);
-            path.strokeColor = "black";
+            path.strokeColor = "rgba(0,0,0,0.3)";
+            path.strokeWidth = 2;
 
             this.paths.push(path);
         }
@@ -65,12 +66,13 @@ export default class Canvas {
         const point = new paper.Point(city.x, city.y);
         this.points.push(point);
 
-        let circle = new paper.Shape.Circle(point, 7);
+        let circle = new paper.Shape.Circle(point, 4);
         circle.fillColor = "red";
         Canvas.addText(point, city.number);
     }
 
     static addText(point, value) {
+        return;
         var text = new paper.PointText(point);
         text.justification = 'left';
         text.fillColor = 'black';

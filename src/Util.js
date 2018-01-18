@@ -17,4 +17,21 @@ export default class Util {
         return Math.hypot(ax - bx, ay - by);
     }
 
+    static swap(array, i, j) {
+        let temp = array[i];
+        array[i] = array[j];
+        array[j] = temp;
+    }
+
+    static twoOptSwap(array, i, j) {
+        if (i === j) return;
+
+        if (i > j)
+            while (i-j>0)
+                Util.swap(array, i--, j++);
+        else
+            while (j-i>0)
+                Util.swap(array, i++, j--);
+    }
+
 }
